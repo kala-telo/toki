@@ -1,0 +1,5 @@
+CompileFlags:
+  Add:
+    - -I../build/wayland_protocols
+    - -I../vendor
+    - -std=c23
