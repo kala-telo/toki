@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <netdb.h>
 
 #include "da.h"
 #include "irc.h"
@@ -163,14 +164,23 @@ static int parse_number(void) {
 }
 
 void irc_connect(char *server, char *username) {
-    server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd == -1)
+    struct addrinfo hints = {0}, *res = NULL;
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    if (getaddrinfo(server, "6667", &hints, &res) != 0)
         abort();
-    struct sockaddr_in servaddr = {0};
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr(server);
-    servaddr.sin_port = htons(6667);
-    if (connect(server_fd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0)
+    for (struct addrinfo *r = res; r; r = r->ai_next) {
+        server_fd = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
+        if (server_fd == -1)
+            continue;
+        if (connect(server_fd, r->ai_addr, r->ai_addrlen) == 0)
+            break;
+        close(server_fd);
+        server_fd = -1;
+    }
+    freeaddrinfo(res);
+    // TODO add error message instead of crashing
+    if (server_fd == -1)
         abort();
     dprintf(server_fd, "NICK %s\r\n", username);
     dprintf(server_fd, "USER %s * * :%s\r\n", username, username);
