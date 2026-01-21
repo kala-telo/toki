@@ -133,7 +133,7 @@ void render_login(RGFW_window *win) {
 }
 
 void render_chat(RGFW_window *win) {
-    CLAY(CLAY_ID("ChattingWindow"), {.layout = {.sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)}}, .backgroundColor = {30, 30, 46, 255}}) {
+    CLAY(CLAY_ID("ChattingWindow"), {.layout = {.sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)}}, .backgroundColor = CATPPUCCIN_BASE}) {
         CLAY(CLAY_ID("SideBar"), {.layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM,
                                   .sizing = {.width = CLAY_SIZING_FIXED(300),
                                              .height = CLAY_SIZING_GROW(0)},
@@ -147,7 +147,10 @@ void render_chat(RGFW_window *win) {
                 };
                 if (render_button(win, str, CLAY_SIZING_GROW(0), CATPPUCCIN_SURFACE1, CATPPUCCIN_SURFACE2, CATPPUCCIN_TEXT)) {
                     current_channel = i;
-                    irc_join_channel(channels.data[i].name.data);
+                    if (!channels.data[i].joined) {
+                        irc_join_channel(channels.data[i].name.data);
+                        channels.data[i].joined = true;
+                    }
                 }
             }
         }
@@ -185,12 +188,12 @@ void render_chat(RGFW_window *win) {
                     CATPPUCCIN_PINK, color_alpha(CATPPUCCIN_PINK, 128),
                     CATPPUCCIN_BASE);
                 if (send_button && the_message.len > 0 && current_channel != -1) {
-                    da_append(the_message, '\0');
                     Message msg = {0};
                     msg.sender.data = username.data;
                     msg.sender.len  = username.len;
                     da_append_many(msg.text, the_message.data, the_message.len);
                     da_append(channels.data[current_channel].messages, msg);
+                    da_append(the_message, '\0');
                     irc_send_message(the_message.data, channels.data[current_channel].name.data);
                     the_message.len = 0;
                 }

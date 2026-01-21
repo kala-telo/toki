@@ -22,6 +22,7 @@ typedef struct {
     StringBuilder name;
     StringBuilder topic;
     Messages messages;
+    bool joined;
 } Channel;
 
 typedef struct {

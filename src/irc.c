@@ -403,6 +403,15 @@ static void parse_str_message(StringBuilder from) {
 void irc_proccess(void) {
     irc_listen();
     while (lex.len-lex.pos > 0) {
+        if (current_char() == 'P') {
+            skip_string("PING ");
+            StringBuilder origin = {0};
+            collect_until(&origin, '\r');
+            da_append(origin, '\0');
+            skip_string("\r\n");
+            dprintf(server_fd, "PONG %s\r\n", origin.data);
+            continue;
+        }
         skip_char(':');
         StringBuilder from = {0};
         collect_until(&from, ' ');

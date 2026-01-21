@@ -1,6 +1,6 @@
 WAYLAND_LD != pkg-config --libs wayland-egl wayland-cursor xkbcommon
 LDFLAGS=-lEGL -lGLESv2 -lm $(WAYLAND_LD)
-CFLAGS=-Ibuild/wayland_protocols/ -Ivendor
+CFLAGS=-std=c23 -Ibuild/wayland_protocols/ -Ivendor
 TARGET=toki
 
 optimized: CFLAGS += -O3 -flto -march=native
