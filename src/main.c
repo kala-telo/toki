@@ -153,6 +153,7 @@ void render_chat(RGFW_window *win) {
         }
         CLAY(CLAY_ID("chat"),
              {.layout = {.childAlignment.y = CLAY_ALIGN_Y_BOTTOM,
+                         .childGap = 3,
                          .layoutDirection = CLAY_TOP_TO_BOTTOM,
                          .sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)},
                          .padding = CLAY_PADDING_ALL(16)}}) {
@@ -164,7 +165,16 @@ void render_chat(RGFW_window *win) {
                     .chars = messages->data[i].text.data,
                     .length = messages->data[i].text.len,
                 };
-                CLAY_TEXT(text, CLAY_TEXT_CONFIG({.fontSize = font_size, .textColor = CATPPUCCIN_TEXT}));
+                Clay_String username = {
+                    .chars = messages->data[i].sender.data,
+                    .length = messages->data[i].sender.len,
+                };
+                CLAY_AUTO_ID({.layout = {.layoutDirection = CLAY_LEFT_TO_RIGHT, .childGap = 16, .childAlignment.y = CLAY_ALIGN_Y_CENTER}}) {
+                    CLAY_AUTO_ID({.layout.padding = CLAY_PADDING_ALL(5), .backgroundColor = CATPPUCCIN_SURFACE0, .cornerRadius = CLAY_CORNER_RADIUS(8)}) {
+                        CLAY_TEXT(username, CLAY_TEXT_CONFIG({.fontSize = font_size, .textColor = CATPPUCCIN_TEXT}));
+                    }
+                    CLAY_TEXT(text, CLAY_TEXT_CONFIG({.fontSize = font_size, .textColor = CATPPUCCIN_TEXT}));
+                }
             }
             CLAY_AUTO_ID({.layout.sizing.width = CLAY_SIZING_GROW(0)}) {
                 render_text_input(win, CLAY_SIZING_GROW(0), &the_message,
@@ -174,7 +184,7 @@ void render_chat(RGFW_window *win) {
                     win, CLAY_STRING(" Send "), CLAY_SIZING_FIT(0),
                     CATPPUCCIN_PINK, color_alpha(CATPPUCCIN_PINK, 128),
                     CATPPUCCIN_BASE);
-                if (send_button && the_message.len > 0) {
+                if (send_button && the_message.len > 0 && current_channel != -1) {
                     da_append(the_message, '\0');
                     Message msg = {0};
                     msg.sender.data = username.data;
@@ -248,11 +258,11 @@ int main() {
     RGFW_window_getSize(win, &w, &h);
     glViewport(0, 0, w, h);
 
-    // XXX
-    da_append_str(username, "kala_telo");
-    da_append_str(server, "127.0.0.1");
-    state = STATE_CHAT;
-    irc_connect(server.data, username.data);
+    // // XXX
+    // da_append_str(username, "kala_telo");
+    // da_append_str(server, "127.0.0.1");
+    // state = STATE_CHAT;
+    // irc_connect(server.data, username.data);
     while (!RGFW_window_shouldClose(win)) {
         RGFW_event event = { 0 };
         i32 x = 0, y = 0;
