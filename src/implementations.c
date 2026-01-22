@@ -1,6 +1,8 @@
 #define RGFW_IMPLEMENTATION
 #define RGFW_OPENGL
+#ifdef __linux__
 #define RGFW_WAYLAND
+#endif
 #define RGFWDEF
 #include <RGFW.h>
 

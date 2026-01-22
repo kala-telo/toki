@@ -30,7 +30,7 @@
             if ((xs).cap == 0) {                                               \
                 (xs).cap = 4;                                                  \
             }                                                                  \
-            while ((n) > (xs).cap) {                                           \
+            while ((xs).len + (n) > (xs).cap) {                                \
                 (xs).cap *= 2;                                                 \
             }                                                                  \
             (xs).data = realloc((xs).data, sizeof(*(xs).data) * (xs).cap);     \
@@ -40,14 +40,14 @@
 
 #define da_append_many(xs, ys, n)                                              \
     do {                                                                       \
-        da_reserve((xs), (n) * sizeof(*(ys)));                                 \
+        da_reserve((xs), (n));                                                 \
         memcpy(&(xs).data[(xs).len], (ys), (n) * sizeof(*(ys)));               \
         (xs).len += (n);                                                       \
     } while (0)
 
 #define da_append_str(xs, str)                                                 \
     do {                                                                       \
-        da_reserve((xs), strlen(str) + 1);                                     \
+        da_reserve((xs), strlen(str));                                         \
         strcpy(&(xs).data[(xs).len], str);                                     \
         (xs).len += strlen(str) + 1;                                           \
     } while (0)

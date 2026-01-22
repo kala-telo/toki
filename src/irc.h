@@ -32,9 +32,10 @@ typedef struct {
 
 void irc_proccess(void);
 void irc_close(void);
-void irc_connect(char *server, char *username);
-void irc_send_message(char *message, char *channel);
-void irc_join_channel(char *channel);
+void irc_connect(StringBuilder *server, StringBuilder *username);
+void irc_send_message(StringBuilder *message, StringBuilder *channel);
+void irc_join_channel(StringBuilder *channel);
+void irc_destroy(void);
 
 extern Messages system_messages;
 extern Channels channels;

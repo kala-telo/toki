@@ -14,7 +14,7 @@ all: wayland_stuff build/main.o build/implementations.o build/irc.o
 clean:
 	rm -rf ./build || true
 
-build/implementations.o: src/implementations.c
+build/implementations.o: src/implementations.c vendor/RGFW.h vendor/clay.h vendor/clay_renderer_gles3_loader_stb.h
 	$(CC) -Wno-unused-result $(CFLAGS) -c src/implementations.c -o build/implementations.o
 build/main.o: src/main.c src/colors.h src/da.h src/irc.h
 	$(CC) -Wall $(CFLAGS) -c src/main.c -o build/main.o

@@ -1,13 +1,10 @@
 #define _POSIX_C_SOURCE 200809L
 
-#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <netinet/in.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <netdb.h>
@@ -44,6 +41,28 @@ static struct {
     char *data;
     size_t len, cap, pos;
 } lex;
+
+static void free_string_builder(StringBuilder *sb) {
+    // sb->cap = 0 means that it is either empty or statically allocated
+    if (sb->data != NULL && sb->cap != 0) {
+        free(sb->data);
+        sb->data = NULL;
+    }
+}
+
+static void free_messages(Messages *msgs) {
+    for (size_t j = 0; j < msgs->len; j++) {
+        Message *msg = &msgs->data[j];
+        free_string_builder(&msg->sender);
+        free_string_builder(&msg->text);
+    }
+}
+
+static void free_channel(Channel *channel) {
+    free_messages(&channel->messages);
+    free_string_builder(&channel->name);
+    free_string_builder(&channel->topic);
+}
 
 static inline bool str_equal(StringBuilder s1, StringBuilder s2) {
     if (s1.len != s2.len)
@@ -163,12 +182,16 @@ static int parse_number(void) {
     return n;
 }
 
-void irc_connect(char *server, char *username) {
+void irc_connect(StringBuilder *server, StringBuilder *username) {
     struct addrinfo hints = {0}, *res = NULL;
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    if (getaddrinfo(server, "6667", &hints, &res) != 0)
+    char *server_cstr = malloc(server->len+1);
+    server_cstr[server->len] = '\0';
+    memcpy(server_cstr, server->data, server->len);
+    if (getaddrinfo(server_cstr, "6667", &hints, &res) != 0)
         abort();
+    free(server_cstr);
     for (struct addrinfo *r = res; r; r = r->ai_next) {
         server_fd = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
         if (server_fd == -1)
@@ -182,8 +205,10 @@ void irc_connect(char *server, char *username) {
     // TODO add error message instead of crashing
     if (server_fd == -1)
         abort();
-    dprintf(server_fd, "NICK %s\r\n", username);
-    dprintf(server_fd, "USER %s * * :%s\r\n", username, username);
+    dprintf(server_fd, "NICK %.*s\r\n", (int)username->len, username->data);
+    dprintf(server_fd, "USER %.*s * * :%.*s\r\n",
+            (int)username->len, username->data,
+            (int)username->len, username->data);
     dprintf(server_fd, "LIST\r\n");
     if (fcntl(server_fd, F_SETFL, O_NONBLOCK) < 0)
         abort();
@@ -195,6 +220,7 @@ static void parse_int_message(StringBuilder from, IrcReply code) {
     Messages *messages = current_channel == -1
                              ? &system_messages
                              : &channels.data[current_channel].messages;
+    bool free_from = true;
     switch (code) {
     case RPL_WELCOME: {
         // skip username
@@ -203,6 +229,7 @@ static void parse_int_message(StringBuilder from, IrcReply code) {
         collect_until(&msg.text, '\r');
         skip_string("\r\n");
         da_append(*messages, msg);
+        free_from = false;
     } break;
     case RPL_ISUPPORT:
         // username
@@ -218,6 +245,7 @@ static void parse_int_message(StringBuilder from, IrcReply code) {
         collect_until(&msg.text, '\r');
         skip_string("\r\n");
         da_append(*messages, msg);
+        free_from = false;
     } break;
     case RPL_MYINFO: {
         // username
@@ -239,6 +267,7 @@ static void parse_int_message(StringBuilder from, IrcReply code) {
         collect_until(&msg.text, '\r');
         skip_string("\r\n");
         da_append(*messages, msg);
+        free_from = false;
     } break;
     case RPL_LUSERCLIENT: {
         // skip username
@@ -247,6 +276,7 @@ static void parse_int_message(StringBuilder from, IrcReply code) {
         collect_until(&msg.text, '\r');
         skip_string("\r\n");
         da_append(*messages, msg);
+        free_from = false;
     } break;
     case RPL_LUSERCHANNELS: {
         // skip username
@@ -258,6 +288,7 @@ static void parse_int_message(StringBuilder from, IrcReply code) {
         collect_until(&msg.text, '\r');
         skip_string("\r\n");
         da_append(*messages, msg);
+        free_from = false;
     } break;
     case RPL_LUSERME: {
         // skip username
@@ -266,6 +297,7 @@ static void parse_int_message(StringBuilder from, IrcReply code) {
         collect_until(&msg.text, '\r');
         skip_string("\r\n");
         da_append(*messages, msg);
+        free_from = false;
     } break;
     case RPL_LOCALUSERS: {
         // skip username
@@ -326,6 +358,7 @@ static void parse_int_message(StringBuilder from, IrcReply code) {
         skip_string(" :");
         Channel *channel = find_channel(channel_name);
         collect_until(&channel->topic, '\r');
+        free_string_builder(&channel_name);
         skip_string("\r\n");
     } break;
     case RPL_TOPICSETBY: {
@@ -360,6 +393,8 @@ static void parse_int_message(StringBuilder from, IrcReply code) {
         printf("Unimplemented code: %02d\n", code);
         abort();
     }
+    if (free_from)
+        free_string_builder(&from);
 }
 
 #define SB(s) (StringBuilder){.data = (s), .len = sizeof(s)-1}
@@ -377,6 +412,7 @@ static void parse_str_message(StringBuilder from) {
         skip_string("\r\n");
         msg.text = SB("joined");
         Channel *channel = find_channel(channel_name);
+        free_string_builder(&channel_name);
         da_append(channel->messages, msg);
     } else if (str_equal(command, SB("PRIVMSG"))) {
         // TODO multiple targets
@@ -395,9 +431,10 @@ static void parse_str_message(StringBuilder from) {
         skip_string("\r\n");
         da_append(*where, msg);
     } else {
-        printf("%.*s\n", (int)command.len, command.data);
+        printf("Unimplemented command: %.*s\n", (int)command.len, command.data);
         abort();
     }
+    free_string_builder(&command);
 }
 
 void irc_proccess(void) {
@@ -407,9 +444,9 @@ void irc_proccess(void) {
             skip_string("PING ");
             StringBuilder origin = {0};
             collect_until(&origin, '\r');
-            da_append(origin, '\0');
             skip_string("\r\n");
-            dprintf(server_fd, "PONG %s\r\n", origin.data);
+            dprintf(server_fd, "PONG %.*s\r\n", (int)origin.len, origin.data);
+            free_string_builder(&origin);
             continue;
         }
         skip_char(':');
@@ -426,15 +463,25 @@ void irc_proccess(void) {
     }
 }
 
+void irc_destroy(void) {
+    for (size_t i = 0; i < channels.len; i++) {
+        Channel *channel = &channels.data[i];
+        free_channel(channel);
+    }
+   free_messages(&system_messages);
+}
+
 void irc_close(void) {
     if (server_fd != -1)
         close(server_fd);
 }
 
-void irc_join_channel(char *channel) {
-    dprintf(server_fd, "JOIN %s\r\n", channel);
+void irc_join_channel(StringBuilder *channel) {
+    dprintf(server_fd, "JOIN %.*s\r\n", (int)channel->len, channel->data);
 }
 
-void irc_send_message(char *message, char *channel) {
-    dprintf(server_fd, "PRIVMSG %s :%s\r\n", channel, message);
+void irc_send_message(StringBuilder *message, StringBuilder *channel) {
+    dprintf(server_fd, "PRIVMSG %.*s :%.*s\r\n",
+            (int)channel->len, channel->data,
+            (int)message->len, message->data);
 }

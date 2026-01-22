@@ -1,6 +1,8 @@
 #include <clay.h>
 #include <GLES3/gl3.h>
+#ifdef __linux__
 #define RGFW_WAYLAND
+#endif
 #define RGFW_OPENGL
 #define RGFWDEF
 #include <RGFW.h>
@@ -28,11 +30,6 @@ static inline Clay_Color color_alpha(Clay_Color c, uint8_t alpha) {
 #define ARRLEN(xs) (sizeof(xs) / sizeof(*(xs)))
 const int font_size = 24;
 
-typedef struct {
-    char *data;
-    size_t len, cap;
-} TextInput;
-
 Messages system_messages = {0};
 
 Channels channels = {0};
@@ -42,10 +39,10 @@ enum {
     STATE_LOGIN,
     STATE_CHAT,
 } state = STATE_LOGIN;
-TextInput *current_input = {0};
+StringBuilder *current_input = {0};
 
-TextInput username = {0}, server = {0}, password = {0};
-TextInput the_message = {0};
+StringBuilder username = {0}, server = {0}, password = {0};
+StringBuilder the_message = {0};
 
 int server_fd = -1;
 int users_online = 0;
@@ -54,9 +51,9 @@ void HandleClayErrors(Clay_ErrorData errorData) {
     printf("%s\n", errorData.errorText.chars);
 }
 
-void render_text_input(RGFW_window *win, Clay_SizingAxis width, TextInput *inp,
+void render_text_input(RGFW_window *win, Clay_SizingAxis width, StringBuilder *inp,
                        Clay_ElementId id, Clay_String text) {
-    TextInput empty_inp = {0};
+    StringBuilder empty_inp = {0};
     if (inp == NULL)
         inp = &empty_inp;
     CLAY(id, {.layout = {.sizing = {width, CLAY_SIZING_FIXED(32)},
@@ -104,7 +101,7 @@ bool render_button(RGFW_window *win, Clay_String text, Clay_SizingAxis width,
 
 void render_login(RGFW_window *win) {
     struct {
-        TextInput *inp;
+        StringBuilder *inp;
         Clay_ElementId id;
         Clay_String text;
     } inputs[] = {
@@ -125,9 +122,7 @@ void render_login(RGFW_window *win) {
         }
         if (render_button(win, CLAY_STRING("Login"), CLAY_SIZING_PERCENT(0.4), CATPPUCCIN_PINK, color_alpha(CATPPUCCIN_PINK, 128), CATPPUCCIN_BASE)) {
             state = STATE_CHAT;
-            da_append(server, '\0');
-            da_append(username, '\0');
-            irc_connect(server.data, username.data);
+            irc_connect(&server, &username);
         }
     }
 }
@@ -148,7 +143,7 @@ void render_chat(RGFW_window *win) {
                 if (render_button(win, str, CLAY_SIZING_GROW(0), CATPPUCCIN_SURFACE1, CATPPUCCIN_SURFACE2, CATPPUCCIN_TEXT)) {
                     current_channel = i;
                     if (!channels.data[i].joined) {
-                        irc_join_channel(channels.data[i].name.data);
+                        irc_join_channel(&channels.data[i].name);
                         channels.data[i].joined = true;
                     }
                 }
@@ -172,7 +167,7 @@ void render_chat(RGFW_window *win) {
                     .chars = messages->data[i].sender.data,
                     .length = messages->data[i].sender.len,
                 };
-                CLAY_AUTO_ID({.layout = {.layoutDirection = CLAY_LEFT_TO_RIGHT, .childGap = 16, .childAlignment.y = CLAY_ALIGN_Y_CENTER}}) {
+                CLAY_AUTO_ID({.layout = {.layoutDirection = CLAY_LEFT_TO_RIGHT, .childGap = 8, .childAlignment.y = CLAY_ALIGN_Y_CENTER}}) {
                     CLAY_AUTO_ID({.layout.padding = CLAY_PADDING_ALL(5), .backgroundColor = CATPPUCCIN_SURFACE0, .cornerRadius = CLAY_CORNER_RADIUS(8)}) {
                         CLAY_TEXT(username, CLAY_TEXT_CONFIG({.fontSize = font_size, .textColor = CATPPUCCIN_TEXT}));
                     }
@@ -190,11 +185,10 @@ void render_chat(RGFW_window *win) {
                 if (send_button && the_message.len > 0 && current_channel != -1) {
                     Message msg = {0};
                     msg.sender.data = username.data;
-                    msg.sender.len  = username.len;
+                    msg.sender.len  = username.len-1;
                     da_append_many(msg.text, the_message.data, the_message.len);
                     da_append(channels.data[current_channel].messages, msg);
-                    da_append(the_message, '\0');
-                    irc_send_message(the_message.data, channels.data[current_channel].name.data);
+                    irc_send_message(&the_message, &channels.data[current_channel].name);
                     the_message.len = 0;
                 }
             }
@@ -265,7 +259,7 @@ int main() {
     // da_append_str(username, "kala_telo");
     // da_append_str(server, "127.0.0.1");
     // state = STATE_CHAT;
-    // irc_connect(server.data, username.data);
+    // irc_connect(&server, &username);
     while (!RGFW_window_shouldClose(win)) {
         RGFW_event event = { 0 };
         i32 x = 0, y = 0;
@@ -311,4 +305,8 @@ int main() {
     irc_close();
     free(arena.memory);
     free(gles3.clayMemory.memory);
+    free(gles3.quadInstanceArray.instData);
+    free(gles3.glyphVtxArray.instData);
+    free(stbFonts[0].cdata);
+    irc_destroy();
 }
