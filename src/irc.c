@@ -12,6 +12,12 @@
 #include "da.h"
 #include "irc.h"
 
+#define TODO(str)                                                              \
+    do {                                                                       \
+        fprintf(stderr, "%s:%d: TODO: %s\n", __FILE__, __LINE__, (str));       \
+        abort();                                                               \
+    } while (false)
+
 typedef enum {
     RPL_WELCOME        =   1,
     RPL_YOURHOST       =   2,
@@ -156,7 +162,7 @@ static int parse_3digit(void) {
     for (int i = 0; i < 3; i++) {
         char c = eat_char();
         if (!isdigit(c)) {
-            abort();
+            TODO("handle parse_3digit failure properly");
         }
         n += (c-'0')*pows[i];
     }
@@ -169,7 +175,7 @@ static int parse_number(void) {
     while (isdigit(current_char())) {
         if (len >= 10) {
             printf("Int to be parsed is larger than i32 can store\n");
-            abort();
+            TODO("handle parse_number failure properly");
         }
         num[len] = eat_char();
         len++;
@@ -190,7 +196,7 @@ void irc_connect(StringBuilder *server, StringBuilder *username) {
     server_cstr[server->len] = '\0';
     memcpy(server_cstr, server->data, server->len);
     if (getaddrinfo(server_cstr, "6667", &hints, &res) != 0)
-        abort();
+        TODO("handle server being unreachable failure properly");
     free(server_cstr);
     for (struct addrinfo *r = res; r; r = r->ai_next) {
         server_fd = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
@@ -204,14 +210,14 @@ void irc_connect(StringBuilder *server, StringBuilder *username) {
     freeaddrinfo(res);
     // TODO add error message instead of crashing
     if (server_fd == -1)
-        abort();
+        TODO("handle server being unreachable failure properly");
     dprintf(server_fd, "NICK %.*s\r\n", (int)username->len, username->data);
     dprintf(server_fd, "USER %.*s * * :%.*s\r\n",
             (int)username->len, username->data,
             (int)username->len, username->data);
     dprintf(server_fd, "LIST\r\n");
     if (fcntl(server_fd, F_SETFL, O_NONBLOCK) < 0)
-        abort();
+        TODO("handle fcntl failure properly");
 }
 
 static void parse_int_message(StringBuilder from, IrcReply code) {
@@ -391,7 +397,7 @@ static void parse_int_message(StringBuilder from, IrcReply code) {
     } break;
     default:
         printf("Unimplemented code: %02d\n", code);
-        abort();
+        TODO("Unimplemented code");
     }
     if (free_from)
         free_string_builder(&from);
@@ -424,7 +430,7 @@ static void parse_str_message(StringBuilder from) {
             where = &channel->messages;
         } else {
             // TODO
-            abort();
+            TODO("Direct messages");
         }
         skip_string(" :");
         collect_until(&msg.text, '\r');
@@ -432,7 +438,7 @@ static void parse_str_message(StringBuilder from) {
         da_append(*where, msg);
     } else {
         printf("Unimplemented command: %.*s\n", (int)command.len, command.data);
-        abort();
+        TODO("Unimplemented command");
     }
     free_string_builder(&command);
 }
