@@ -185,7 +185,7 @@ void render_chat(RGFW_window *win) {
                 if (send_button && the_message.len > 0 && current_channel != -1) {
                     Message msg = {0};
                     msg.sender.data = username.data;
-                    msg.sender.len  = username.len-1;
+                    msg.sender.len  = username.len;
                     da_append_many(msg.text, the_message.data, the_message.len);
                     da_append(channels.data[current_channel].messages, msg);
                     irc_send_message(&the_message, &channels.data[current_channel].name);
@@ -196,17 +196,17 @@ void render_chat(RGFW_window *win) {
     }
 }
 
-void keyfunc(RGFW_window *win, RGFW_key key, u8 keyChar, RGFW_keymod keyMod,
+void keyfunc(RGFW_window *win, RGFW_key key, RGFW_keymod keyMod,
              RGFW_bool repeat, RGFW_bool pressed) {
     if (!pressed)
         return;
     if (current_input == NULL)
         return;
-    if (keyChar == 8 && current_input->len > 0)
+    if (key == 8 && current_input->len > 0)
         current_input->len--;
-    if (31 > keyChar || keyChar > 127)
+    if (31 > key || key > 127)
         return;
-    da_append(*current_input, keyChar);
+    da_append(*current_input, key);
 }
 
 RGFW_window *init_rgfw(i32 w, i32 h) {
