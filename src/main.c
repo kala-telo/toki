@@ -1,5 +1,12 @@
+#ifdef __APPLE__
+#define GL_SILENCE_DEPRECATION
+#endif
 #include <clay.h>
+#ifdef __APPLE__
+#include <OpenGL/gl3.h>
+#else
 #include <GLES3/gl3.h>
+#endif
 #ifdef __linux__
 #define RGFW_WAYLAND
 #endif
@@ -253,7 +260,9 @@ int main() {
 
     // mainloop
     RGFW_window_getSize(win, &w, &h);
-    glViewport(0, 0, w, h);
+    i32 pw, ph;
+    RGFW_window_getSizeInPixels(win, &pw, &ph);
+    glViewport(0, 0, pw, ph);
 
     // // XXX
     // da_append_str(username, "kala_telo");
@@ -267,7 +276,8 @@ int main() {
             switch (event.type) {
             case RGFW_windowResized: {
                 RGFW_window_getSize(win, &w, &h);
-                glViewport(0, 0, w, h);
+                RGFW_window_getSizeInPixels(win, &pw, &ph);
+                glViewport(0, 0, pw, ph);
             } break;
             case RGFW_quit:
                 printf("exit\n");
