@@ -209,11 +209,16 @@ void keyfunc(RGFW_window *win, RGFW_key key, RGFW_keymod keyMod,
         return;
     if (current_input == NULL)
         return;
-    if (key == 8 && current_input->len > 0)
+    if (key == RGFW_backSpace && current_input->len > 0)
         current_input->len--;
-    if (31 > key || key > 127)
+}
+
+void charfunc(RGFW_window *win, u32 codepoint) {
+    if (current_input == NULL)
         return;
-    da_append(*current_input, key);
+    if (codepoint < 32 || codepoint > 126)
+        return;
+    da_append(*current_input, (char)codepoint);
 }
 
 RGFW_window *init_rgfw(i32 w, i32 h) {
@@ -227,6 +232,7 @@ RGFW_window *init_rgfw(i32 w, i32 h) {
     );
     if (!win) exit(1);
     RGFW_setKeyCallback(keyfunc);
+    RGFW_setKeyCharCallback(charfunc);
     RGFW_window_setExitKey(win, RGFW_escape);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
