@@ -1,3 +1,6 @@
+#ifdef __APPLE__
+#define GL_SILENCE_DEPRECATION
+#endif
 #define RGFW_IMPLEMENTATION
 #define RGFW_OPENGL
 #ifdef __linux__
@@ -9,7 +12,11 @@
 #define CLAY_IMPLEMENTATION
 #include <clay.h>
 
+#ifdef __APPLE__
+#include <OpenGL/gl3.h>
+#else
 #include <GLES3/gl3.h>
+#endif
 #define GLSL_VERSION "#version 330 core"
 #define CLAY_RENDERER_GLES3_IMPLEMENTATION
 #include <clay_renderer_gles3.h>

@@ -1,5 +1,12 @@
+#ifdef __APPLE__
+#define GL_SILENCE_DEPRECATION
+#endif
 #include <clay.h>
+#ifdef __APPLE__
+#include <OpenGL/gl3.h>
+#else
 #include <GLES3/gl3.h>
+#endif
 #ifdef __linux__
 #define RGFW_WAYLAND
 #endif
@@ -202,11 +209,16 @@ void keyfunc(RGFW_window *win, RGFW_key key, RGFW_keymod keyMod,
         return;
     if (current_input == NULL)
         return;
-    if (key == 8 && current_input->len > 0)
+    if (key == RGFW_backSpace && current_input->len > 0)
         current_input->len--;
-    if (31 > key || key > 127)
+}
+
+void charfunc(RGFW_window *win, u32 codepoint) {
+    if (current_input == NULL)
         return;
-    da_append(*current_input, key);
+    if (codepoint < 32 || codepoint > 126)
+        return;
+    da_append(*current_input, (char)codepoint);
 }
 
 RGFW_window *init_rgfw(i32 w, i32 h) {
@@ -220,6 +232,7 @@ RGFW_window *init_rgfw(i32 w, i32 h) {
     );
     if (!win) exit(1);
     RGFW_setKeyCallback(keyfunc);
+    RGFW_setKeyCharCallback(charfunc);
     RGFW_window_setExitKey(win, RGFW_escape);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -253,7 +266,9 @@ int main() {
 
     // mainloop
     RGFW_window_getSize(win, &w, &h);
-    glViewport(0, 0, w, h);
+    i32 pw, ph;
+    RGFW_window_getSizeInPixels(win, &pw, &ph);
+    glViewport(0, 0, pw, ph);
 
     // // XXX
     // da_append_str(username, "kala_telo");
@@ -267,7 +282,8 @@ int main() {
             switch (event.type) {
             case RGFW_windowResized: {
                 RGFW_window_getSize(win, &w, &h);
-                glViewport(0, 0, w, h);
+                RGFW_window_getSizeInPixels(win, &pw, &ph);
+                glViewport(0, 0, pw, ph);
             } break;
             case RGFW_quit:
                 printf("exit\n");
