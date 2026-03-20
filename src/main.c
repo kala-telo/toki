@@ -203,17 +203,8 @@ void render_chat(RGFW_window *win) {
     }
 }
 
-void keyfunc(RGFW_window *win, RGFW_key key, RGFW_keymod keyMod,
-             RGFW_bool repeat, RGFW_bool pressed) {
-    if (!pressed)
-        return;
-    if (current_input == NULL)
-        return;
-    if (key == RGFW_backSpace && current_input->len > 0)
-        current_input->len--;
-}
-
-void charfunc(RGFW_window *win, u32 codepoint) {
+void charfunc(const RGFW_event *e) {
+    uint32_t codepoint = e->keyChar.value;
     if (current_input == NULL)
         return;
     if (codepoint < 32 || codepoint > 126)
@@ -231,9 +222,8 @@ RGFW_window *init_rgfw(i32 w, i32 h) {
         RGFW_windowCenter | RGFW_windowOpenGL
     );
     if (!win) exit(1);
-    RGFW_setKeyCallback(keyfunc);
-    RGFW_setKeyCharCallback(charfunc);
-    RGFW_window_setExitKey(win, RGFW_escape);
+    RGFW_setEventCallback(RGFW_keyChar, charfunc);
+    RGFW_window_setExitKey(win, RGFW_keyEscape);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -280,13 +270,10 @@ int main() {
         i32 x = 0, y = 0;
         while (RGFW_window_checkEvent(win, &event)) {
             switch (event.type) {
-            case RGFW_windowResized: {
+            case RGFW_windowResized:
                 RGFW_window_getSize(win, &w, &h);
                 RGFW_window_getSizeInPixels(win, &pw, &ph);
                 glViewport(0, 0, pw, ph);
-            } break;
-            case RGFW_quit:
-                printf("exit\n");
                 break;
             }
         }
