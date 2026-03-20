@@ -137,8 +137,7 @@ void render_login(RGFW_window *win) {
 void render_chat(RGFW_window *win) {
     CLAY(CLAY_ID("ChattingWindow"), {.layout = {.sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)}}, .backgroundColor = CATPPUCCIN_BASE}) {
         CLAY(CLAY_ID("SideBar"), {.layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM,
-                                  .sizing = {.width = CLAY_SIZING_FIXED(300),
-                                             .height = CLAY_SIZING_GROW(0)},
+                                  .sizing = {.width = CLAY_SIZING_FIXED(300), .height = CLAY_SIZING_GROW(0)},
                                   .padding = CLAY_PADDING_ALL(16),
                                   .childGap = 16}, .backgroundColor = (Clay_Color)CATPPUCCIN_SURFACE0}) {
             for (size_t i = 0; i < channels.len; i++) {
@@ -156,39 +155,42 @@ void render_chat(RGFW_window *win) {
                 }
             }
         }
-        CLAY(CLAY_ID("chat"),
-             {.layout = {.childAlignment.y = CLAY_ALIGN_Y_BOTTOM,
-                         .childGap = 3,
-                         .layoutDirection = CLAY_TOP_TO_BOTTOM,
-                         .sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)},
-                         .padding = CLAY_PADDING_ALL(16)}}) {
-            Messages *messages = current_channel == -1
-                                     ? &system_messages
-                                     : &channels.data[current_channel].messages;
-            for (size_t i = 0; i < messages->len; i++) {
-                Clay_String text = {
-                    .chars = messages->data[i].text.data,
-                    .length = messages->data[i].text.len,
-                };
-                Clay_String username = {
-                    .chars = messages->data[i].sender.data,
-                    .length = messages->data[i].sender.len,
-                };
-                CLAY_AUTO_ID({.layout = {.layoutDirection = CLAY_LEFT_TO_RIGHT, .childGap = 8, .childAlignment.y = CLAY_ALIGN_Y_CENTER}}) {
-                    CLAY_AUTO_ID({.layout.padding = CLAY_PADDING_ALL(5), .backgroundColor = CATPPUCCIN_SURFACE0, .cornerRadius = CLAY_CORNER_RADIUS(8)}) {
-                        CLAY_TEXT(username, CLAY_TEXT_CONFIG({.fontSize = font_size, .textColor = CATPPUCCIN_TEXT}));
+        CLAY(CLAY_ID("InputAndMessages"), {.layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM,
+                                                      .childAlignment.y = CLAY_ALIGN_Y_BOTTOM,
+                                                      .sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)}}}) {
+            CLAY(CLAY_ID("Chat")) {
+                CLAY_AUTO_ID({.layout = {.childAlignment.y = CLAY_ALIGN_Y_BOTTOM,
+                                         .childGap = 3,
+                                         .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                                         .sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)},
+                                         .padding = CLAY_PADDING_ALL(16)},
+                              .clip = {.vertical = true, .childOffset = Clay_GetScrollOffset()}}) {
+                    Messages *messages = current_channel == -1
+                                             ? &system_messages
+                                             : &channels.data[current_channel].messages;
+                    for (size_t i = 0; i < messages->len; i++) {
+                        Clay_String text = {
+                            .chars = messages->data[i].text.data,
+                            .length = messages->data[i].text.len,
+                        };
+                        Clay_String username = {
+                            .chars = messages->data[i].sender.data,
+                            .length = messages->data[i].sender.len,
+                        };
+                        CLAY_AUTO_ID({.layout = {.layoutDirection = CLAY_LEFT_TO_RIGHT, .childGap = 8, .childAlignment.y = CLAY_ALIGN_Y_CENTER}}) {
+                            CLAY_AUTO_ID({.layout.padding = CLAY_PADDING_ALL(5), .backgroundColor = CATPPUCCIN_SURFACE0, .cornerRadius = CLAY_CORNER_RADIUS(8)}) {
+                                CLAY_TEXT(username, CLAY_TEXT_CONFIG({.fontSize = font_size, .textColor = CATPPUCCIN_TEXT}));
+                            }
+                            CLAY_TEXT(text, CLAY_TEXT_CONFIG({.fontSize = font_size, .textColor = CATPPUCCIN_TEXT}));
+                        }
                     }
-                    CLAY_TEXT(text, CLAY_TEXT_CONFIG({.fontSize = font_size, .textColor = CATPPUCCIN_TEXT}));
                 }
             }
             CLAY_AUTO_ID({.layout.sizing.width = CLAY_SIZING_GROW(0)}) {
                 render_text_input(win, CLAY_SIZING_GROW(0), &the_message,
                                   CLAY_ID("Textbox"),
                                   CLAY_STRING("Your message here..."));
-                bool send_button = render_button(
-                    win, CLAY_STRING(" Send "), CLAY_SIZING_FIT(0),
-                    CATPPUCCIN_PINK, color_alpha(CATPPUCCIN_PINK, 128),
-                    CATPPUCCIN_BASE);
+                bool send_button = render_button( win, CLAY_STRING(" Send "), CLAY_SIZING_FIT(0), CATPPUCCIN_PINK, color_alpha(CATPPUCCIN_PINK, 128), CATPPUCCIN_BASE);
                 if (send_button && the_message.len > 0 && current_channel != -1) {
                     Message msg = {0};
                     msg.sender.data = username.data;
@@ -254,14 +256,13 @@ int main() {
         abort();
     // Clay_SetDebugModeEnabled(true);
 
-    // mainloop
     RGFW_window_getSize(win, &w, &h);
     i32 pw, ph;
     RGFW_window_getSizeInPixels(win, &pw, &ph);
     glViewport(0, 0, pw, ph);
 
     // // XXX
-    // da_append_str(username, "kala_telo");
+    // da_append_str(username, "kala_test");
     // da_append_str(server, "127.0.0.1");
     // state = STATE_CHAT;
     // irc_connect(&server, &username);
