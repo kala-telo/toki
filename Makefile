@@ -2,8 +2,8 @@ APP_CFLAGS += -std=c23 -Ivendor
 OBJS=build/main.o build/irc.o build/implementations.o
 TARGET=toki
 
-HEADERS_WAYLAND=build/wayland_protocols/xdg-shell.h build/wayland_protocols/xdg-decoration-unstable-v1.h build/wayland_protocols/xdg-toplevel-icon-v1.h build/wayland_protocols/relative-pointer-unstable-v1.h build/wayland_protocols/pointer-constraints-unstable-v1.h build/wayland_protocols/xdg-output-unstable-v1.h
-OBJS_WAYLAND=build/wayland_protocols/xdg-shell.o build/wayland_protocols/xdg-toplevel-icon-v1.o build/wayland_protocols/xdg-decoration-unstable-v1.o build/wayland_protocols/relative-pointer-unstable-v1.o build/wayland_protocols/pointer-constraints-unstable-v1.o build/wayland_protocols/xdg-output-unstable-v1.o
+HEADERS_WAYLAND=build/wayland_protocols/xdg-shell.h build/wayland_protocols/xdg-decoration-unstable-v1.h build/wayland_protocols/xdg-toplevel-icon-v1.h build/wayland_protocols/relative-pointer-unstable-v1.h build/wayland_protocols/pointer-constraints-unstable-v1.h build/wayland_protocols/xdg-output-unstable-v1.h build/wayland_protocols/pointer-warp-v1.h
+OBJS_WAYLAND=build/wayland_protocols/xdg-shell.o build/wayland_protocols/xdg-toplevel-icon-v1.o build/wayland_protocols/xdg-decoration-unstable-v1.o build/wayland_protocols/relative-pointer-unstable-v1.o build/wayland_protocols/pointer-constraints-unstable-v1.o build/wayland_protocols/xdg-output-unstable-v1.o build/wayland_protocols/pointer-warp-v1.o
 
 PLATFORM_HEADERS_Linux=$(HEADERS_WAYLAND)
 PLATFORM_OBJS_Linux=$(OBJS_WAYLAND)
@@ -76,3 +76,9 @@ build/wayland_protocols/xdg-output-unstable-v1.c: /usr/share/wayland-protocols/u
 	wayland-scanner public-code /usr/share/wayland-protocols/unstable/xdg-output/xdg-output-unstable-v1.xml build/wayland_protocols/xdg-output-unstable-v1.c
 build/wayland_protocols/xdg-output-unstable-v1.o: build/wayland_protocols/xdg-output-unstable-v1.c build/wayland_protocols
 	$(CC) $(CFLAGS) $(APP_CFLAGS) $(PLATFORM_CFLAGS) -c build/wayland_protocols/xdg-output-unstable-v1.c -o build/wayland_protocols/xdg-output-unstable-v1.o
+build/wayland_protocols/pointer-warp-v1.h: /usr/share/wayland-protocols/staging/pointer-warp/pointer-warp-v1.xml build/wayland_protocols
+	wayland-scanner client-header /usr/share/wayland-protocols/staging/pointer-warp/pointer-warp-v1.xml build/wayland_protocols/pointer-warp-v1.h
+build/wayland_protocols/pointer-warp-v1.c: /usr/share/wayland-protocols/staging/pointer-warp/pointer-warp-v1.xml build/wayland_protocols
+	wayland-scanner public-code /usr/share/wayland-protocols/staging/pointer-warp/pointer-warp-v1.xml build/wayland_protocols/pointer-warp-v1.c
+build/wayland_protocols/pointer-warp-v1.o: build/wayland_protocols/pointer-warp-v1.c build/wayland_protocols
+	$(CC) $(CFLAGS) $(APP_CFLAGS) $(PLATFORM_CFLAGS) -c build/wayland_protocols/pointer-warp-v1.c -o build/wayland_protocols/pointer-warp-v1.o
